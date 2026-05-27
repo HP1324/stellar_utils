@@ -1,72 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// An interactive image viewer that supports pinch-to-zoom, pan, and double-tap gestures
-/// with Hero animation support for smooth transitions.
+/// An interactive image viewer that supports pinch-to-zoom, pan,
+/// double-tap gestures, and Hero animations.
 ///
-/// Can display a single image or multiple images with page navigation.
+/// Supports both single and multiple images by passing one or more
+/// image providers in [imageProviders].
 class InteractiveImageViewer extends StatefulWidget {
-  // Legacy single image constructor
-  final ImageProvider? imageProvider;
-  final String? heroTag;
-
-  // New multiple images support
-  final List<ImageProvider>? imageProviders;
-  final List<String>? heroTags;
+  final List<ImageProvider> imageProviders;
+  final List<String?>? heroTags;
   final int initialPage;
 
-  // Common properties
   final double minScale;
   final double maxScale;
   final Color backgroundColor;
+  final Axis scrollDirection;
 
-  /// Constructor for single image (maintains backward compatibility)
   const InteractiveImageViewer({
-    super.key,
-    required this.imageProvider,
-    required this.heroTag,
-    this.minScale = 0.5,
-    this.maxScale = 4.0,
-    this.backgroundColor = Colors.black,
-  }) : imageProviders = null,
-       heroTags = null,
-       initialPage = 0;
-
-  /// Constructor for multiple images
-  const InteractiveImageViewer.multiple({
     super.key,
     required this.imageProviders,
     this.heroTags,
     this.initialPage = 0,
     this.minScale = 0.5,
     this.maxScale = 4.0,
-    this.backgroundColor = Colors.black,
-  }) : imageProvider = null,
-       heroTag = null;
+    this.backgroundColor = Colors.black,  this.scrollDirection = .horizontal,
+  });
 
   @override
-  State<InteractiveImageViewer> createState() => _InteractiveImageViewerState();
+  State<InteractiveImageViewer> createState() =>
+      _InteractiveImageViewerState();
 }
 
-class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
-  late PageController _pageController;
+class _InteractiveImageViewerState
+    extends State<InteractiveImageViewer> {
+  late final PageController _pageController;
   late int _currentPage;
-  late List<ImageProvider> _images;
-  late List<String?> _tags;
+  late final List<String?> _tags;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize data from either single or multiple image constructor
-    if (widget.imageProvider != null) {
-      _images = [widget.imageProvider!];
-      _tags = [widget.heroTag];
-      _currentPage = 0;
-    } else {
-      _images = widget.imageProviders!;
-      _tags = widget.heroTags ?? List.generate(_images.length, (i) => null);
-      _currentPage = widget.initialPage.clamp(0, _images.length - 1);
-    }
+    _currentPage = widget.initialPage.clamp(
+      0,
+      widget.imageProviders.length - 1,
+    );
+
+    _tags =
+        widget.heroTags ??
+            List.generate(widget.imageProviders.length, (_) => null);
 
     _pageController = PageController(initialPage: _currentPage);
   }
@@ -79,17 +60,17 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final isSingleImage = _images.length == 1;
+    final isSingleImage = widget.imageProviders.length == 1;
 
     return Scaffold(
       backgroundColor: widget.backgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
-            // PageView for images
             PageView.builder(
+              scrollDirection: widget.scrollDirection,
               controller: _pageController,
-              itemCount: _images.length,
+              itemCount: widget.imageProviders.length,
               onPageChanged: (page) {
                 setState(() {
                   _currentPage = page;
@@ -97,7 +78,7 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
               },
               itemBuilder: (context, index) {
                 return _ImagePage(
-                  imageProvider: _images[index],
+                  imageProvider: widget.imageProviders[index],
                   heroTag: _tags[index],
                   minScale: widget.minScale,
                   maxScale: widget.maxScale,
@@ -105,7 +86,6 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
               },
             ),
 
-            // Page indicator (only show for multiple images)
             if (!isSingleImage)
               Positioned(
                 top: 16,
@@ -122,7 +102,7 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${_currentPage + 1}/${_images.length}',
+                      '${_currentPage + 1}/${widget.imageProviders.length}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -133,7 +113,6 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
                 ),
               ),
 
-            // Close button
             Positioned(
               top: 16,
               right: 16,
@@ -144,7 +123,7 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
                   onTap: () => Navigator.of(context).pop(),
                   borderRadius: BorderRadius.circular(20),
                   child: const Padding(
-                    padding: EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(8),
                     child: Icon(
                       Icons.close,
                       color: Colors.white,
@@ -161,7 +140,6 @@ class _InteractiveImageViewerState extends State<InteractiveImageViewer> {
   }
 }
 
-/// Individual page for each image with zoom/pan functionality
 class _ImagePage extends StatefulWidget {
   final ImageProvider imageProvider;
   final String? heroTag;
@@ -179,9 +157,13 @@ class _ImagePage extends StatefulWidget {
   State<_ImagePage> createState() => _ImagePageState();
 }
 
-class _ImagePageState extends State<_ImagePage> with AutomaticKeepAliveClientMixin {
-  final TransformationController _transformationController = TransformationController();
-  late AnimationController _animationController;
+class _ImagePageState extends State<_ImagePage>
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
+  final TransformationController _transformationController =
+  TransformationController();
+
+  late final AnimationController _animationController;
+
   Animation<Matrix4>? _animation;
 
   @override
@@ -190,15 +172,16 @@ class _ImagePageState extends State<_ImagePage> with AutomaticKeepAliveClientMix
   @override
   void initState() {
     super.initState();
+
     _animationController =
-        AnimationController(
-          vsync: Navigator.of(context),
-          duration: const Duration(milliseconds: 300),
-        )..addListener(() {
-          if (_animation != null) {
-            _transformationController.value = _animation!.value;
-          }
-        });
+    AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..addListener(() {
+      if (_animation != null) {
+        _transformationController.value = _animation!.value;
+      }
+    });
   }
 
   @override
@@ -209,22 +192,25 @@ class _ImagePageState extends State<_ImagePage> with AutomaticKeepAliveClientMix
   }
 
   void _handleDoubleTap() {
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final currentScale =
+    _transformationController.value.getMaxScaleOnAxis();
+
     final targetScale = currentScale > 1.5 ? 1.0 : 2.5;
 
     final Matrix4 endMatrix;
+
     if (targetScale == 1.0) {
       endMatrix = Matrix4.identity();
     } else {
-      final context = this.context;
       final size = context.size!;
+
       final centerX = size.width / 2;
       final centerY = size.height / 2;
 
       endMatrix = Matrix4.identity()
-        ..translate(centerX, centerY)
-        ..scale(targetScale)
-        ..translate(-centerX, -centerY);
+        ..translateByDouble(centerX, centerY, 0, 1)
+        ..scaleByDouble(targetScale, targetScale, 1, 1)
+        ..translateByDouble(-centerX, -centerY, 0, 1);
     }
 
     _animation =
@@ -243,14 +229,13 @@ class _ImagePageState extends State<_ImagePage> with AutomaticKeepAliveClientMix
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     Widget imageWidget = Image(
       image: widget.imageProvider,
       fit: BoxFit.contain,
     );
 
-    // Wrap with Hero only if heroTag is provided
     if (widget.heroTag != null) {
       imageWidget = Hero(
         tag: widget.heroTag!,
@@ -264,7 +249,9 @@ class _ImagePageState extends State<_ImagePage> with AutomaticKeepAliveClientMix
         transformationController: _transformationController,
         minScale: widget.minScale,
         maxScale: widget.maxScale,
-        child: Center(child: imageWidget),
+        child: Center(
+          child: imageWidget,
+        ),
       ),
     );
   }
