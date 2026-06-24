@@ -43,25 +43,28 @@ class ArchiveUtils {
   }
 
   /// Unzips a file at [zipPath] to the [destinationDirectory].
-  static Future<void> unzip({
+  static Future<List<FileSystemEntity>> unzip({
     required String zipPath,
     required String destinationDirectory,
   }) async {
     final bytes = await File(zipPath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
-
+    final List<FileSystemEntity> entities = [];
     for (final file in archive) {
       final filename = file.name;
       if (file.isFile) {
         final data = file.content as List<int>;
-        await (File(
+        final deviceFile = await (File(
           join(destinationDirectory, filename),
         )..create(recursive: true)).writeAsBytes(data);
+        entities.add(deviceFile);
       } else {
-        await Directory(
+        final dir = await Directory(
           join(destinationDirectory, filename),
         ).create(recursive: true);
+        entities.add(dir);
       }
     }
+    return entities;
   }
 }
