@@ -11,6 +11,8 @@ dependencies:
   archive: ^4.0.9
   flutter:
     sdk: flutter
+  font_awesome_flutter: ^11.0.0
+  hugeicons: ^1.1.7
   path: ^1.9.1
 
 dev_dependencies:
