@@ -4,7 +4,7 @@ version: 0.0.1
 homepage:
 
 environment:
-  sdk: ^3.11.4
+  sdk: ^3.13.3
   flutter: ">=1.17.0"
 
 dependencies:
@@ -16,6 +16,7 @@ dependencies:
   path: ^1.9.1
   toastification: ^3.2.0
 
+  material_ui: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// An interactive image viewer that supports pinch-to-zoom, pan,
 /// double-tap gestures, and Hero animations.

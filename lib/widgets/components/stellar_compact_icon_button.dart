@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// An [IconButton] but removed extra space it takes around itself.
 class StellarCompactIconButton extends StatelessWidget {
