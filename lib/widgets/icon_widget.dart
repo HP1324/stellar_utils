@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-typedef HugeIconsIconType = List<List<int>>;
+typedef HugeIconsIconType = List<List<dynamic>>;
 
 /// Wrapper for icons, it is useful when we want to use multiple types of icons
 /// in a project, like HugeIcons, FontAwesomeIcons etc.
